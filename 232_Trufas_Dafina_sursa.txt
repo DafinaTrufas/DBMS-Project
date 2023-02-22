@@ -1,0 +1,1966 @@
+-- 4.
+create table teatru(
+    cod_teatru number(4) constraint pk_teatru primary key,
+    denumire varchar2(50),
+    cod_adresa number(4),
+    data_infiintare date
+);
+
+alter table teatru
+add constraint fk_teatru_adr foreign key(cod_adresa) references adresa(cod_adresa) on delete cascade;
+
+create table persoana(
+    cod_persoana number(4) constraint pk_pers primary key,
+    nume varchar2(25) constraint not_null_nume not null,
+    prenume varchar2(25),
+    data_nasterii date,
+    nr_telefon number(10),
+    email varchar2(25) constraint unq_email unique 
+    profesie varchar2(10)
+); 
+
+create table artist(
+    cod_persoana number(4) constraint pk_art primary key,
+    sex char(1),
+    constraint fk_art_pers foreign key(cod_persoana) references persoana(cod_persoana) on delete cascade
+);
+
+create table tehnician(
+    cod_persoana number(4) constraint pk_teh primary key,
+    data_angajarii date default sysdate,
+    cod_teatru number(4),
+    constraint fk_tehn_pers foreign key(cod_persoana) references persoana(cod_persoana) on delete cascade,
+    constraint fk_tehn_teatru foreign key(cod_teatru) references teatru(cod_teatru) on delete set null
+);
+
+create table specializare(
+    cod_specializare number(2) constraint pk_spec primary key,
+    denumire varchar2(40),
+    observatii varchar2(2000)
+);
+
+create table piesa(
+    cod_piesa number(4) constraint pk_piesa primary key,
+    titlu varchar2(70),
+    autor varchar2(50),
+    an_publicare number(4),
+    gen varchar2(25)
+);
+
+create table montare(
+    cod_montare number(4) constraint pk_montare primary key,
+    cod_piesa number(4),
+    cod_teatru number(4),
+    stagiune varchar2(10),
+    data_premierei date,
+    buget number(6, 2) constraint not_null_buget not null,
+    constraint fk_mont_piesa foreign key (cod_piesa) references piesa(cod_piesa) on delete set null,
+    constraint fk_mont_teatru foreign key (cod_teatru) references teatru(cod_teatru) on delete set null
+);
+
+alter table montare
+modify buget default 1000;
+
+create table sala(
+    cod_sala number(4),
+    cod_teatru number(4),
+    denumire varchar2(50),
+    capacitate number(4),
+    constraint pk_sala_c primary key(cod_sala, cod_teatru),
+    constraint fk_sala_teatru foreign key (cod_teatru) references teatru(cod_teatru) on delete cascade
+);
+
+create table adresa(
+    cod_adresa number(4) constraint pk_adr primary key,
+    oras varchar2(40),
+    strada varchar2(50),
+    numar number(4)
+);
+
+create table sponsor(
+    cod_sponsor number(4) constraint pk_sponsor primary key,
+    nume varchar2(50),
+    nr_telefon varchar2(25),
+    email varchar2(25) constraint unq_email_sp unique
+);
+
+create table festival(
+    cod_festival number(4) constraint pk_fest primary key,
+    denumire varchar2(50),
+    locatie varchar2(50),
+    data_inceperii date,
+    data_incheierii date,
+    constraint ck_di_df check(data_incheierii > data_inceperii)
+);
+
+create table distributie(
+    cod_montare number(4),
+    cod_artist number(4),
+    cod_teatru number(4),
+    rol varchar2(50),
+    constraint pk_dist primary key(cod_montare, cod_artist, cod_teatru),
+    constraint fk_dist_art foreign key(cod_artist) references artist(cod_persoana) on delete set null,
+    constraint fk_dist_mont foreign key(cod_montare) references montare(cod_montare) on delete cascade,
+    constraint fk_dist_teatru foreign key(cod_teatru) references teatru(cod_teatru) on delete cascade
+);
+
+alter table distributie 
+add functie varchar2(30);
+alter table distributie drop constraint pk_dist;
+alter table distributie add constraint pk_dist primary key (cod_montare, cod_artist, cod_teatru, functie);
+
+create table spec_art(
+    cod_artist number(4),
+    cod_specializare number(2),
+    constraint pk_spec_art primary key(cod_artist, cod_specializare),
+    constraint fk_specart_art foreign key(cod_artist) references artist(cod_persoana) on delete cascade,
+    constraint fk_specart_spec foreign key(cod_specializare) references specializare(cod_specializare) on delete cascade
+);
+
+create table afis(
+    cod_montare number(4),
+    cod_sala number(4),
+    cod_teatru  number(4),
+    data date,
+    ora date,
+    constraint pk_afis primary key(cod_montare, cod_sala, cod_teatru, data),
+    constraint fk_afis_mont foreign key(cod_montare) references montare(cod_montare) on delete cascade,
+    constraint fk_afis_sala foreign key(cod_sala, cod_teatru) references sala(cod_sala, cod_teatru) on delete cascade
+);
+
+create table contract(
+    cod_sponsor number(4),
+    cod_montare number(4),
+    suma number(6, 2),
+    constraint pk_cont primary key(cod_sponsor, cod_montare),
+    constraint fk_cont_spon foreign key(cod_sponsor) references sponsor(cod_sponsor) on delete set null,
+    constraint fk_cont_mont foreign key(cod_montare) references montare(cod_montare) on delete cascade
+);
+
+create table agenda(
+    cod_festival number(4),
+    cod_montare number(4),
+    cod_teatru number(4),
+    cod_sala number(4),
+    data date,
+    ora date,
+    constraint pk_agenda primary key(cod_festival, cod_montare, cod_sala, cod_teatru),
+    constraint fk_ag_fest foreign key(cod_festival) references festival(cod_festival) on delete cascade,
+    constraint fk_ag_montare foreign key(cod_montare) references montare(cod_montare) on delete cascade,
+    constraint fk_ag_sala foreign key(cod_sala, cod_teatru) references sala(cod_sala, cod_teatru) on cascade
+);
+
+create sequence secv
+start with 1
+increment by 1
+maxvalue 100
+nocycle 
+nocache;
+
+-- 5.
+insert into adresa values (secv.nextval, 'Bucuresti', 'Nicolae Balcescu', 2);
+insert into adresa values (secv.nextval, 'Bucuresti', 'Schitu Magureanu', 1);
+insert into adresa values (secv.nextval, 'Bucuresti', 'Magheru', 20);
+insert into adresa values (secv.nextval, 'Bucuresti', 'Constantin Mile', 16);
+insert into adresa values (secv.nextval, 'Bucuresti', 'Carol', 21);
+insert into adresa values (secv.nextval, 'Bucuresti', 'Sfantul Dumitru', 2);
+insert into adresa values (secv.nextval, 'Bucuresti', 'Doctor Iuliu Barasch', 15);
+insert into adresa values (secv.nextval, 'Bucuresti', 'Calea Victoriei', 40);
+insert into adresa values (secv.nextval, 'Bucuresti', 'Mihai Eminescu', 89);
+insert into adresa values (secv.nextval, 'Bucuresti', 'Uverturii', 70);
+insert into adresa values (secv.nextval, 'Braila', 'Mihai Eminescu', 2);
+insert into adresa values (secv.nextval, 'Buzau', 'Nicolae Balcescu', 50);
+insert into adresa values (secv.nextval, 'Cluj', 'Stefan cel Mare', 24);
+insert into adresa values (secv.nextval, 'Constanta', 'Mircea cel Batran', 97);
+insert into adresa values (secv.nextval, 'Craiova', 'Alexandru Ioan Cuza', 11);
+insert into adresa values (secv.nextval, 'Iasi', 'Agatha Barsescu', 18);
+insert into adresa values (secv.nextval, 'Ploiesti', 'Toma Caragiu', 13);
+insert into adresa values (secv.nextval, 'Sibiu', 'Corneliu Coposu', 2);
+insert into adresa values (secv.nextval, 'Timisoara', 'Marasesti', 2);
+
+insert into teatru values (secv.nextval, 'Teatrul National Bucuresti', secv.currval, '31-DEC-1852');
+insert into teatru values (secv.nextval, 'Teatrul Bulandra', secv.currval, '17-SEP-1947');
+insert into teatru values (secv.nextval, 'Teatrul Notarra', secv.currval, '1-JAN-1947');
+insert into teatru values (secv.nextval, 'Teatrul Mic', secv.currval, '22-DEC-1964');
+insert into teatru values (secv.nextval, 'Teatrul Foarte Mic', secv.currval, '1-JAN-1979');
+insert into teatru values (secv.nextval, 'Teatrul de Comedie', secv.currval, '5-JAN-1961');
+insert into teatru values (secv.nextval, 'Teatrul Evreiesc de Stat', secv.currval, '19-AUG-1876');
+insert into teatru values (secv.nextval, 'Teatrul Odeon', secv.currval, '25-DEC-1911');
+insert into teatru values (secv.nextval, 'Teatrul Metropolis', secv.currval, '1-JAN-2007');
+insert into teatru values (secv.nextval, 'Teatrul Masca', secv.currval, '24-MAY-1990');
+insert into teatru values (secv.nextval, 'Teatrul Maria Filotti', secv.currval, '1-JAN-1864');
+insert into teatru values (secv.nextval, 'Teatrul George Ciprian', secv.currval, '5-APR-1996');
+insert into teatru values (secv.nextval, 'Teatrul National Lucian Blaga', secv.currval, '14-MAY-1919');
+insert into teatru values (secv.nextval, 'Teatrul National Constanta', secv.currval, '1-JAN-1951');
+insert into teatru values (secv.nextval, 'Teatrul National Craiova', secv.currval, '29-JUN-1850');
+insert into teatru values (secv.nextval, 'Teatrul National Vasile Alecsandri', secv.currval, '1-JAN-1840');
+insert into teatru values (secv.nextval, 'Teatrul Toma Caragiu', secv.currval, '15-APR-1957');
+insert into teatru values (secv.nextval, 'Teatrul Radu Stanca', secv.currval, '1-JUN-1788');
+insert into teatru values (secv.nextval, 'Teatrul National Mihai Eminescu', secv.currval, '22-SEP-1875');
+
+insert into specializare (cod_specializare, denumire) values (secv.nextval, 'actor');
+insert into specializare (cod_specializare, denumire) values (secv.nextval, 'regizor');
+insert into specializare (cod_specializare, denumire) values (secv.nextval, 'scenograf');
+insert into specializare (cod_specializare, denumire) values (secv.nextval, 'muzica');
+insert into specializare (cod_specializare, denumire) values (secv.nextval, 'costume');
+
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'O noapte furtunoasa', 'Ion Luca Caragiale', 'comedie', 1879);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Trei surori', 'Anton Pavlovici Cehov', 'drama', 1900);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Revizorul', 'Nicolai Vasilivici Gogol', null, 1836);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'O scrisoare pierduta', 'Ion Luca Caragiale', 'comedie', 1884);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'D-ale carnavalului', 'Ion Luca Caragiale', 'comedie', 1885);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Livada de visini', 'Anton Pavlovici Cehov', null, 1904);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Omul cu martoaga', 'George Ciprian', null, 1927);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Furtuna', 'William Shakespeare', 'comedie', 1610);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Cum va place', 'William Shakespeare', 'comedie', 1600);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Totul e bine cand se termina cu bine', 'William Shakespeare', 'comedie', 1623);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Richard al III-lea', 'William Shakespeare', 'istorica', 1591);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Romeo si Julieta', 'William Shakespeare', 'tragedie', 1597);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Hamlet', 'William Shakespeare', 'tragedie', 1600);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Regele Lear', 'William Shakespeare', 'tragedie', 1606);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Visul unei nopti de vara', 'William Shakespeare', 'comedie', 1595);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Faust', 'Johann Wolfgang von Goethe', 'drama', 1790);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Micul Print', 'Antoine de Saint Exupery', null, 1943);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Gaitele', 'Alexandru Kiritescu', 'comedie', 1829);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Lectia', 'Eugen Ionesco', 'drama', 1950);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Angajare de clovn', 'Matei Visniec', 'drama', 1986);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Scandal in culise', 'Michael Frayn', 'comedie', 1982);
+insert into piesa (cod_piesa, titlu, autor, gen, an_publicare) values (secv.nextval, 'Pescarusul', 'Anton Pavlovici Cehov', 'drama', 1895);
+insert into piesa (cod_piesa, titlu, autor, an_publicare) values (secv.nextval, 'Pescarusul', 'Boris Akunin', 2012);
+
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Alexa', 'Felix', 'af@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Rusu', 'Mircea', 'rn@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Olaru', 'Orodel', 'oo@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval,'Puric', 'Dan', 'pd@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Calin', 'Mihai', 'cm@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Movila', 'Irina', 'mi@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Marinescu', 'Medeea', 'mm@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Ion', 'Diana Ruxandra', 'idr@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Calota', 'Armand', to_date('22-07-1962', 'dd-mm-yyyy'), 'ca@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Bârbora', 'Cecilia', to_date('10-05-1963', 'dd-mm-yyyy'), 'bc@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Maci', 'Eugenia', to_date('03-02-1951', 'dd-mm-yyyy'), 'me@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Goia', 'Ilinca', to_date('06-03-1969', 'dd-mm-yyyy'), 'gi@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Ivanov', 'Vlad', to_date('04-08-1969', 'dd-mm-yyyy'), 'iv@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Ionescu', 'Rodica', to_date('01-05-1977', 'dd-mm-yyyy'), 'ir@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Krasovski', 'Yuri', 'ki@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Popescu Farcasanu', 'Florinela', 'pff@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Mihalev', 'Kiril', 'mk@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Smirnov', 'Serghei', 'ss@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Bogomaz', 'Dimitrii', 'bd@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Boguta', 'Dorian', 'bd1@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Crasmaru', 'Damian', to_date('10-05-1931', 'dd-mm-yyyy'),'cd@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Ionescu', 'Dragos', to_date('28-09-1967', 'dd-mm-yyyy'), 'id@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Biris', 'Silviu', to_date('06-10-1973', 'dd-mm-yyyy'), 'bs@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Alexandru', 'Matei', to_date('25-12-1927', 'dd-mm-yyyy'),'am@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Zamfirescu', 'Raluca', to_date('01-11-1924', 'dd-mm-yyyy'), 'zr@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Ciochiu', 'Simona', 'cs@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Cerkasski', 'Serghei', 'cs1@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Mokriv', 'Mihail', 'mm1@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Rogalev', 'Igor', 'ri@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Cristea', 'Eugen', to_date('18-04-1952', 'dd-mm-yyyy'), 'ce@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Cercel', 'Florina', to_date('28-01-1943', 'dd-mm-yyyy'), 'cf@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Georgescu', 'Alexandru', to_date('24-01-1948', 'dd-mm-yyyy'), 'ga@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Gheorghe', 'Radu', 'gr@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Hasnas', 'Alexandru', to_date('13-03-1933', 'dd-mm-yyyy'), 'ha@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Morgenstern', 'Maia', to_date('01-05-1962', 'dd-mm-yyyy'), 'mm2@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Rizea', 'Marius', to_date('24-11-1975', 'dd-mm-yyyy'), 'rm@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Ionescu', 'Serban', to_date('23-09-1950', 'dd-mm-yyyy'), 'is@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Musatescu', 'Bogdan', to_date('01-06-1941', 'dd-mm-yyyy'), 'mb@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Cobzariu', 'Marcelo', to_date('28-03-1970', 'dd-mm-yyyy'), 'cm1@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Ionescu', 'Ioan Andrei', to_date('12-04-1974', 'dd-mm-yyyy'), 'iia@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Andreescu', 'Miruna', to_date('14-02-1977', 'dd-mm-yyyy'), 'am@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Andreescu', 'Miruna', to_date('14-02-1977', 'dd-mm-yyyy'), 'am1@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Mirea', 'Eugen', to_date('24-03-1977', 'dd-mm-yyyy'), 'me1@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Ciochina', 'Anda', to_date('09-10-1977', 'dd-mm-yyyy'), 'ca2@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Raileanu', 'Costin', to_date('30-09-1977', 'dd-mm-yyyy'), 'rc1@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Vermesan', 'Linda', to_date('14-02-1977', 'dd-mm-yyyy'), 'vl1@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Ghetu', 'Theodor', to_date('11-05-1980', 'dd-mm-yyyy'), 'gt1@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Ene', 'Iasmina', to_date('19-06-1980', 'dd-mm-yyyy'), 'ei1@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, email, profesie) values (secv.nextval, 'Ichim', 'Vladimir', to_date('23-08-1980', 'dd-mm-yyyy'), 'iv1@', 'artist');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Bisa', 'Emanuel', 'be@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Spalatu', 'Ionel', 'si@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Ene', 'Valentin', 'ev@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Cudalbeanu', 'Stefan', 'cs2@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Staicu', 'Gheorghe', 'sg@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Chirita', 'Adina', 'ca1@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Solomonescu', 'George', 'sg1@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Deaconu', 'Vasile', 'dv@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Custura', 'Radu', 'cr@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Frincu', 'Angelina', 'fa@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Stamate', 'Elena', 'se@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Trifan', 'Victor', 'tv@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Iernat', 'Laurentiu', 'il@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Bajenaru', 'Stefan', 'bs1@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Verzea', 'Dumitra', 'vd@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Chesca', 'Diana', 'cd1@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Surdu', 'Ion', 'si1@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Dragu', 'Petre', 'dp@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Hangulescu', 'Serban', 'hs@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Ghimpatu', 'Sorin', 'gs@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Bercaru', 'Tudor', 'bt@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Dimov', 'Simona', 'ds@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Petrescu', 'Paul', 'pp@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Crivoi', 'Stefan', 'cs3@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Jianu', 'Grigore', 'jg@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Boieru', 'Traian', 'bt1@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Enescu', 'Mihail', 'em@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Radulescu', 'Pavel', 'rp@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Chereches', 'Istvan', 'ci@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, email, profesie) values (secv.nextval, 'Prundea', 'Alexandru', 'pa@', 'tehnician');
+insert into persoana (cod_persoana, nume, prenume, data_nasterii, profesie) values (78, 'Rusu', 'Mircea', to_date('19-04-1984', 'dd-mm-yyyy'), 'artist');
+
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');	
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'F');
+insert into artist (cod_persoana, sex) values (secv.nextval, 'M');
+insert into artist values (78, 'M');
+
+insert into tehnician (cod_persoana, data_angajarii, cod_teatru) values (secv.nextval, '03-AUG-1976', 1);
+insert into tehnician (cod_persoana, cod_teatru) values (secv.nextval, 1);
+insert into tehnician (cod_persoana, cod_teatru) values (secv.nextval, 1);
+insert into tehnician (cod_persoana, data_angajarii, cod_teatru) values (secv.nextval, '25-FEB-1980', 1);
+insert into tehnician (cod_persoana, cod_teatru) values (secv.nextval, 2);
+insert into tehnician (cod_persoana, cod_teatru) values (secv.nextval, 2);
+insert into tehnician (cod_persoana, cod_teatru) values (47, 2);
+insert into tehnician (cod_persoana, cod_teatru) values (48, 2);
+insert into tehnician (cod_persoana, cod_teatru) values (49, 2);
+insert into tehnician (cod_persoana, cod_teatru) values (50, 3);
+insert into tehnician (cod_persoana, cod_teatru) values (51, 4);
+insert into tehnician (cod_persoana, cod_teatru) values (52, 4);
+insert into tehnician (cod_persoana, cod_teatru) values (53, 4);
+insert into tehnician (cod_persoana, cod_teatru) values (54, 5);
+insert into tehnician (cod_persoana, cod_teatru) values (55, 2);
+insert into tehnician (cod_persoana, cod_teatru) values (56, 2);
+insert into tehnician (cod_persoana, cod_teatru) values (57, 2);
+insert into tehnician (cod_persoana, cod_teatru) values (58, 3);
+insert into tehnician (cod_persoana, cod_teatru) values (59, 4);
+insert into tehnician (cod_persoana, cod_teatru) values (60, 4);
+insert into tehnician (cod_persoana, cod_teatru) values (61, 4);
+insert into tehnician (cod_persoana, cod_teatru) values (62, 5);
+
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 2);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 3);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 2);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 3);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 4);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 5);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 2);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 3);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 4);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 3);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 2);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 4);
+insert into spec_art (cod_artist, cod_specializare) values (secv.nextval, 1);
+insert into spec_art (cod_artist, cod_specializare) values (8, 5);
+
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval,1,1,'2012-2013',to_date('09-10-2012', 'dd-mm-yyyy'), 3000);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval,2,1,'2019-2020',to_date('05-12-2019', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval,3,1,'2013-2014',to_date('06-10-2013', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval,5,1,'2021-2022',to_date('26-10-2021', 'dd-mm-yyyy'), 3000);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval,4,1,'2021-2022',to_date('19-01-2022', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval,6,1,'1991-1992', to_date('23-04-1992', 'dd-mm-yyyy'), 2000);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval,6, 1, '2009-2010', to_date('13-05-2010', 'dd-mm-yyyy'), 2500);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval,7, 1, '2011-2012', to_date('19-11-2011', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval,15, 1, '2003-2004', to_date('09-10-2003', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval,18, 1, '1977-1978', to_date('29-11-1977', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval,19, 1, '2008-2009', to_date('16-05-2009', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval,14, 2, '2018-2019', to_date('08-11-2018', 'dd-mm-yyyy'), 3000);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval, 4, 2, '2007-2008', to_date('30-01-2008', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, buget) values (secv.nextval, '1', '3', 1500);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval,13, 4, '2006-2007', to_date('06-10-2006', 'dd-mm-yyyy'), 1750);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval,15, 4, '2010-2011', to_date('11-06-2011', 'dd-mm-yyyy'), 1750);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval, 8, 4, '2018-2019', to_date('15-01-2019', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval, 13, 5, '2011-2012', to_date('16-11-2011', 'dd-mm-yyyy'), 2750);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval, 4, 6, '2010-2011', to_date('15-05-2011', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval, 13, 13, '2001-2002', to_date('02-10-2001', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval, 18, 13, '2001-2002', to_date('28-02-2002', 'dd-mm-yyyy'), 1750);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval, 1, 13, '2005-2006', to_date('15-10-2005', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval, 11, 13, '2005-2006', to_date('10-12-2005', 'dd-mm-yyyy'), 1500);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval, 14, 13, '2006-2007', to_date('24-10-2006', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval, 18, 13, '2007-2008', to_date('22-12-2007', 'dd-mm-yyyy'), 2250);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval, 6, 13, '2009-2010', to_date('29-10-2009', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval, 15, 13, '2019-2020', to_date('06-03-2020', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval, 3, 13, '2009-2010', to_date('04-05-2010', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru) values (secv.nextval, 6, 14);
+insert into montare (cod_montare, cod_piesa, cod_teatru) values (secv.nextval, 9, 14);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei, buget) values (secv.nextval, 1, 15, '2011-2012', to_date('15-11-2011', 'dd-mm-yyyy'), 1750);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, data_premierei) values (secv.nextval, 13, 15, '2019-2020', to_date('02-05-2020', 'dd-mm-yyyy'));
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, buget) values (secv.nextval, 1, 16, '2010-2011', 1750);
+insert into montare (cod_montare, cod_piesa, cod_teatru) values (secv.nextval, 5, 17);
+insert into montare (cod_montare, cod_piesa, cod_teatru) values (secv.nextval, 8, 17);
+insert into montare (cod_montare, cod_piesa, cod_teatru) values (secv.nextval, 16, 18);
+insert into montare (cod_montare, cod_piesa, cod_teatru) values (secv.nextval, 5, 18);
+insert into montare (cod_montare, cod_piesa, cod_teatru) values (secv.nextval, 15, 18);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, buget) values (secv.nextval, 4, 19, '2010-2011', 2000);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune) values (secv.nextval, 3, 19, '2009-2010');
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune) values (secv.nextval, 12, 19, '2009-2010');
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, buget) values (secv.nextval, 2, 19, '2007-2008', 1700);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune) values (secv.nextval, 20, 19, '2005-2006');
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, buget) values (secv.nextval, 20, 19, '2003-2004', 2300);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune) values (secv.nextval, 15, 19, '2000-2001');
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune) values (secv.nextval, 17, 18, '2021-2022');
+insert into montare (cod_montare, cod_piesa, cod_teatru) values (secv.nextval, 18, 2);
+insert into montare (cod_montare, cod_piesa, cod_teatru) values (secv.nextval, 20, 11);
+insert into montare (cod_montare, cod_piesa, cod_teatru) values (secv.nextval, 9, 14);
+insert into montare (cod_montare, cod_piesa, cod_teatru, buget) values (secv.nextval, 18, 11, 1750);
+insert into montare (cod_montare, cod_piesa, cod_teatru, buget) values (secv.nextval, 7, 11, 1500);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, buget) values (secv.nextval, 22, 11, '2022-2023', 2250);
+insert into montare (cod_montare, cod_piesa, cod_teatru, stagiune, buget) values (secv.nextval, 23, 13, '2022-2023', 2250);
+
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie) values (1, 1, 1, 'regizor');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie) values (1, 1, 8, 'scenograf');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (1, 1, 2, 'actor', 'jupan Dumitrache');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (1, 1, 3, 'actor', 'Nae Ipingescu');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (1, 1, 4, 'actor', 'Rica Venturiano');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (1, 1, 5, 'actor', 'Chiriac');
+insert into distributie values (1, 9, 1, 'Spiridon', 'actor');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (1, 1, 6, 'actor', 'Veta');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (1, 1, 7, 'actor', 'Zita');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie) values (2, 1, 15, 'regizor');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie) values (2, 1, 16, 'scenograf');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie) values (2, 1, 18, 'costume');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie) values (2, 1, 17, 'muzica');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (2, 1, 9, 'actor', 'Andrei Sergheevici Prozorov');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (2, 1, 10, 'actor', 'Natalia Ivanovna');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (2, 1, 11, 'actor', 'Olga');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (2, 1, 12, 'actor', 'Masa');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (2, 1, 13, 'actor', 'Kulighin Feodor Ilici');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (2, 1, 19, 'actor', 'Tuzenbach Nicolai Lvovici');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (2, 1, 20, 'actor', 'Solionîi Vasilii Vasilievici');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie, rol) values (2, 1, 20, 'actor', 'Solionîi Vasilii Vasilievici');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie) values (9, 1, 14, 'actor');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie) values (15, 4, 75, 'actor');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie) values (3, 1, 27, 'regizor');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie) values (3, 1, 28, 'scenograf');
+insert into distributie (cod_montare, cod_teatru, cod_artist, functie) values (3, 1, 18, 'costume');
+insert into distributie values (5, 70, 1, 'Zoe', 'actor');
+insert into distributie values (5, 9, 1, 'Stefan Tipatescu', 'actor');
+insert into distributie (cod_montare, cod_artist, cod_teatru, functie) values (5, 27, 1, 'regizor');
+insert into distributie (cod_montare, cod_artist, cod_teatru, functie) values(1, 8, 1, 'costume');
+insert into distributie (cod_montare, cod_artist, cod_teatru, functie) values (4, 73, 1, 'regizor');
+insert into distributie (cod_montare, cod_artist, cod_teatru, functie) values (12, 15, 2, 'regizor');
+insert into distributie (cod_montare, cod_artist, cod_teatru, functie) values (14, 27, 3, 'regizor');
+insert into distributie (cod_montare, cod_artist, cod_teatru, functie) VALUES (37, 1, 18, 'regizor');
+insert into distributie (cod_montare, cod_artist, cod_teatru, functie) VALUES (46, 15, 18, 'regizor');
+
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 1, 'Sala "Ion Caramitru"', 940);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 1, 'Sala Studio', 541);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 1, 'Sala "Pictura"', 230);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 1, 'Sala Mica', 150);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 2, 'Sala "Liviu Ciulei"', 250);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 2, 'Sala "Toma Caragiu"', 200);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 3, 'Sala "Horia Lovinescu"', 339);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 3, 'Sala Studio "George Constantin"', 100);
+insert into sala (cod_sala, cod_teatru, denumire) values (secv.nextval, 6, 'Sala "Radu Beligan"');
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 8, 'Sala "Majestic"', 300);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 11, 'Sala Mare', 300);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 11, 'Sala Studio "Bujor Macrin"', 100);
+insert into sala (cod_sala, cod_teatru, denumire) values (secv.nextval, 13, 'Sala Mare');
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 13, 'Studio "Euphorion"', 200);
+insert into sala (cod_sala, cod_teatru, denumire) values (secv.nextval, 14, 'Sala Mare');
+insert into sala (cod_sala, cod_teatru, denumire) values (secv.nextval, 15, 'Sala "Amza Pellea"');
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 16, 'Sala Mare', 750);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 16, 'Sala "Teatru la Cub"', 150);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 16, 'Sala Studio "Teofil Valcu"', 100);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 16, 'Sala "Uzina cu Teatru"', 100);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 18, 'Sala Mare', 318);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 18, 'Sala Studio', 100);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 18, 'Sala "Faust"', 450);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 19, 'Sala Mare', 600);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 19, 'Sala 2', 200);
+insert into sala (cod_sala, cod_teatru, denumire, capacitate) values (secv.nextval, 6, 'Sala Studio', 130);
+
+insert into afis (cod_montare, cod_sala, cod_teatru, data, ora) values (1, 1, 1, to_date('27-02-2022', 'dd-mm-yyyy'), to_date('18:00', 'hh24:mi'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data, ora) values (2, 1, 1, to_date('01-03-2022', 'dd-mm-yyyy'), to_date('18:30', 'hh24:mi'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data, ora) values (3, 2, 1, to_date('14-03-2022', 'dd-mm-yyyy'), to_date('19:00', 'hh24:mi'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data, ora) values (4, 3, 1, to_date('23-04-2022', 'dd-mm-yyyy'), to_date('19:00', 'hh24:mi'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data, ora) values (5, 4, 1, to_date('11-05-2022', 'dd-mm-yyyy'), to_date('19:30', 'hh24:mi'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data, ora) values (36, 22, 18, to_date('12-05-2022', 'dd-mm-yyyy'), to_date('18:00', 'hh24:mi'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data, ora) values (37, 23, 18, to_date('01-05-2022', 'dd-mm-yyyy'), to_date('18:30', 'hh24:mi'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data, ora) values (38, 22, 18, to_date('15-05-2022', 'dd-mm-yyyy'), to_date('19:00', 'hh24:mi'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data, ora) values (22, 13, 13, to_date('20-04-2022', 'dd-mm-yyyy'), to_date('19:00', 'hh24:mi'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data, ora) values (28, 14, 13, to_date('19-05-2022', 'dd-mm-yyyy'), to_date('19:30', 'hh24:mi'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (6, 4, 1, to_date('31-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (7, 3, 1, to_date('31-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (8, 4, 1, to_date('1-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (9, 3, 1, to_date('2-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (10, 2, 1, to_date('3-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (11, 1, 1, to_date('4-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (12, 5, 2, to_date('5-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (13, 5, 2, to_date('6-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (14, 7, 3, to_date('7-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (19, 9, 6, to_date('8-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (8, 4, 1, to_date('12-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (9, 3, 1, to_date('13-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (10, 2, 1, to_date('14-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (11, 1, 1, to_date('15-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (12, 5, 5, to_date('16-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (13, 3, 6, to_date('17-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (14, 7, 3, to_date('18-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (19, 9, 6, to_date('19-12-2022', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (1, 1, 1, to_date('7-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (1, 1, 1, to_date('8-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (1, 1, 1, to_date('14-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (37, 21, 18, to_date('15-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (37, 21, 18, to_date('16-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (9, 2, 1, to_date('7-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (9, 2, 1, to_date('14-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (1, 1, 1, to_date('17-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (1, 1, 1, to_date('18-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (1, 1, 1, to_date('24-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (37, 21, 18, to_date('25-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (37, 21, 18, to_date('26-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (9, 2, 1, to_date('27-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (9, 2, 1, to_date('19-1-2023', 'dd-mm-yyyy'));
+insert into afis (cod_montare, cod_sala, cod_teatru, data) values (9, 2, 1, to_date('20-1-2023', 'dd-mm-yyyy'));
+
+insert into sponsor(cod_sponsor, nume) values (secv.nextval, 'Creart'); 
+insert into sponsor(cod_sponsor, nume) values (secv.nextval, 'Replika');
+insert into sponsor(cod_sponsor, nume) values (secv.nextval, 'Takt');
+insert into sponsor(cod_sponsor, nume) values (secv.nextval, 'Atelier Creart');
+insert into sponsor(cod_sponsor, nume) values (secv.nextval, 'Experiment');
+
+insert into festival(cod_festival, denumire, locatie, data_inceperii, data_incheierii) values(secv.nextval, 'Festvalul National de Teatru', 'Bucuresti', to_date('12-10-2022', 'dd-mm-yyyy'), to_date('19-10-2022', 'dd-mm-yyyy'));
+insert into festival(cod_festival, denumire, locatie, data_inceperii, data_incheierii) values(secv.nextval, 'Festvalul "Dialog"', 'Braila', to_date('03-09-2022', 'dd-mm-yyyy'), to_date('10-09-2022', 'dd-mm-yyyy'));
+insert into festival(cod_festival, denumire, locatie, data_inceperii, data_incheierii) values(secv.nextval, 'Festvalul International de Teatru', 'Sibiu', to_date('17-07-2022', 'dd-mm-yyyy'), to_date('30-07-2022', 'dd-mm-yyyy'));
+insert into festival(cod_festival, denumire, locatie, data_inceperii, data_incheierii) values(secv.nextval, 'Festvalul de Comedie "EuroArt"', 'Iasi', to_date('15-05-2022', 'dd-mm-yyyy'), to_date('22-05-2022', 'dd-mm-yyyy'));
+insert into festival(cod_festival, denumire, locatie, data_inceperii, data_incheierii) values(secv.nextval, 'Festvalul National de Teatru Independent', 'Constanta', to_date('20-06-2022', 'dd-mm-yyyy'), to_date('27-06-2022', 'dd-mm-yyyy'));
+
+insert into contract(cod_sponsor, cod_montare, suma) values(1, 1, 2000);
+insert into contract(cod_sponsor, cod_montare, suma) values(1, 5, 1000);
+
+insert into contract(cod_sponsor, cod_montare, suma) values(1, 7, 2500);
+insert into contract(cod_sponsor, cod_montare) values(2, 8);
+insert into contract(cod_sponsor, cod_montare) values(2, 10, 1250);
+insert into contract(cod_sponsor, cod_montare, suma) values(3, 12, 2250);
+insert into contract(cod_sponsor, cod_montare, suma) values(3, 16, 1000);
+insert into contract(cod_sponsor, cod_montare, suma) values(4, 21, 3000);
+insert into contract(cod_sponsor, cod_montare, suma) values(4, 30, 1750);
+insert into contract(cod_sponsor, cod_montare, suma) values(5, 37, 2000);
+insert into contract(cod_sponsor, cod_montare, suma) values(1, 37, 1550);
+insert into contract(cod_sponsor, cod_montare, suma) values(3, 36, 850);
+insert into contract(cod_sponsor, cod_montare, suma) values(2, 21, 2300);
+insert into contract(cod_sponsor, cod_montare, suma) values(4, 22, 1900);
+insert into contract(cod_sponsor, cod_montare, suma) values(5, 37, 2000);
+insert into contract(cod_sponsor, cod_montare, suma) values(1, 14, 1850);
+insert into contract(cod_sponsor, cod_montare, suma) values(2, 19, 1450);
+insert into contract(cod_sponsor, cod_montare, suma) values(3, 20, 1350);
+insert into contract(cod_sponsor, cod_montare, suma) values(3, 39, 1750);
+insert into contract(cod_sponsor, cod_montare, suma) values(3, 4, 2400);
+insert into contract(cod_sponsor, cod_montare, suma) values(3, 1, 2500);
+insert into contract(cod_sponsor, cod_montare, suma) values(2, 4, 2400);
+insert into contract(cod_sponsor, cod_montare, suma) values(2, 3, 2300);
+insert into contract(cod_sponsor, cod_montare, suma) values(2, 28, 2500);
+insert into contract(cod_sponsor, cod_montare, suma) values(2, 40, 2800);
+insert into contract(cod_sponsor, cod_montare, suma) values(1, 40, 2200);
+insert into contract(cod_sponsor, cod_montare, suma) values(1, 28, 2600);
+insert into contract(cod_sponsor, cod_montare, suma) values(1, 3, 3200);
+
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data, ora) values(1, 12, 1, 2, '12-OCT-2022', to_date('18:00', 'hh24:mi'));
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data, ora) values(1, 3, 1, 3, '14-OCT-2022', to_date('19:00', 'hh24:mi'));
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data, ora) values(1, 14, 2, 5, '18-OCT-2022', to_date('18:00', 'hh24:mi'));
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data, ora) values(2, 32, 11, 12, '04-SEP-2022', to_date('18:00', 'hh24:mi'));
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data, ora) values(2, 25, 11, 11, '07-SEP-2022', to_date('18:30', 'hh24:mi'));
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data, ora) values(3, 37, 18, 21, '17-JUL-2022', to_date('18:00', 'hh24:mi'));
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data) values(3, 17, 18, 22, '19-JUL-2022');
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data) values(3, 29, 18, 22, '23-JUL-2022');
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data) values(4, 33, 14, 15, '16-MAY-2022');
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data) values(5, 19, 14, 15, '25-JUN-2022');
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data) values(3, 19, 14, 15, '25-JUN-2022');
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data) values(1, 4, 1, 2, '13-OCT-2022');
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data) values(1, 5, 1, 4, '15-OCT-2022');
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data) values(1, 46, 2, 6, '17-OCT-2022');
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data) values(3, 4, 18, 21, '18-JUL-2022');
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data) values(3, 5, 18, 22, '21-JUL-2022');
+insert into agenda(cod_festival, cod_montare, cod_teatru, cod_sala, data) values(3, 46, 18, 23, '26-JUL-2022');
+insert into agenda (cod_festival, cod_montare, cod_teatru, cod_sala) values (2, 50, 11, 12);
+insert into agenda (cod_festival, cod_montare, cod_teatru, cod_sala) values (2, 51, 11, 11);
+insert into agenda (cod_festival, cod_montare, cod_teatru, cod_sala) values (2, 17, 11, 12);
+
+-- 6.
+CREATE OR REPLACE PROCEDURE info_sala(denumire_sala sala.denumire%TYPE)
+IS
+    TYPE info_pers IS RECORD (
+            prenume persoana.prenume%TYPE,
+            nume persoana.nume%TYPE,
+            spec specializare.denumire%TYPE,
+            cod_spec specializare.cod_specializare%TYPE
+            );
+    TYPE lista_artisti IS TABLE OF info_pers;
+    artisti lista_artisti;
+    TYPE info_montare IS RECORD (
+        data_pr montare.data_premierei%TYPE, 
+        gen piesa.gen%TYPE,
+        distrib lista_artisti
+        );
+    TYPE lista_info_montari IS TABLE OF info_montare INDEX BY piesa.titlu%TYPE;
+    piese lista_info_montari;
+    cod sala.cod_sala%TYPE;
+    p piesa.titlu%TYPE;
+    nume_ant persoana.nume%TYPE;
+    prenume_ant persoana.prenume%TYPE;
+    specializari VARCHAR2(100);
+BEGIN
+    SELECT cod_sala INTO cod
+    FROM sala
+    WHERE denumire = denumire_sala;
+    FOR i IN
+        (SELECT m.cod_montare cod, titlu, data_premierei, gen
+         FROM piesa p, montare m, afis a
+         WHERE p.cod_piesa = m.cod_piesa
+         AND m.cod_montare = a.cod_montare
+         AND a.cod_sala = cod) LOOP
+        SELECT p.prenume, p.nume, s.denumire, s.cod_specializare BULK COLLECT INTO artisti
+        FROM persoana p, artist a, distributie d, spec_art sa, specializare s
+        WHERE p.cod_persoana = a.cod_persoana
+        AND a.cod_persoana = d.cod_artist
+        AND d.cod_montare = i.cod
+        AND a.cod_persoana = sa.cod_artist
+        AND sa.cod_specializare = s.cod_specializare
+        AND functie = s.denumire
+        ORDER BY 2, 1;
+        SELECT i.data_premierei, i.gen INTO piese(i.titlu).data_pr, piese(i.titlu).gen
+        FROM DUAL;
+        piese(i.titlu).distrib := artisti;
+    END LOOP;
+    IF piese.COUNT > 0 THEN
+        dbms_output.put_line('Detaliile montarilor desfasurate in ' || denumire_sala || ' sunt urmatoarele:');
+    ELSE
+        dbms_output.put_line('Nu exista inca nicio montare planificata in ' || denumire_sala);
+    END IF;
+    p := piese.FIRST;
+    LOOP
+        EXIT WHEN p IS NULL;
+        dbms_output.put_line('Montarea piesei "' || p || '" (' || NVL(piese(p).gen, 'gen nespecificat') || '), a carei data a premierei este ' 
+                              || NVL(TO_CHAR(piese(p).data_pr, 'DD-MON-YYYY'), 'nespecificata') || '.');
+        IF piese(p).distrib.COUNT > 0 THEN
+           dbms_output.put_line('La realizarea acestei montari au participat urmatorii artisti: ');
+        ELSE 
+            dbms_output.put_line('Nu se cunosc detalii despre artistii care au participat la aceast montare.');
+            dbms_output.new_line();
+            p := piese.NEXT(p);
+            CONTINUE;
+        END IF;
+        prenume_ant := piese(p).distrib(piese(p).distrib.FIRST).prenume;
+        nume_ant := piese(p).distrib(piese(p).distrib.FIRST).nume;
+        specializari := '';
+        FOR i IN 1..piese(p).distrib.COUNT LOOP
+            IF (piese(p).distrib(i).prenume  <> prenume_ant OR piese(p).distrib(i).nume <> nume_ant) THEN
+                dbms_output.put_line('  ' || prenume_ant || ' ' || nume_ant || ' - ' || specializari);
+                specializari := piese(p).distrib(i).spec || ', ';
+            ELSE
+                specializari := piese(p).distrib(i).spec || ', ' || specializari;
+            END IF;
+            prenume_ant := piese(p).distrib(i).prenume;
+            nume_ant := piese(p).distrib(i).nume;
+        END LOOP;
+        dbms_output.put_line('  ' || piese(p).distrib(piese(p).distrib.COUNT).prenume || ' ' || piese(p).distrib(piese(p).distrib.COUNT).nume
+                             || ' - ' || SUBSTR(specializari, 1, LENGTH(specializari) - 2) || '.');
+        dbms_output.new_line();
+        p := piese.NEXT(p);
+    END LOOP;
+EXCEPTION
+    WHEN TOO_MANY_ROWS THEN
+        dbms_output.put_line('Exista mai multe sali cu denumirea "' || denumire_sala || '".');
+    WHEN NO_DATA_FOUND THEN
+        dbms_output.put_line('Nu exista nicio sala cu denumirea "' || denumire_sala || '".');
+END info_sala;
+/
+
+BEGIN
+    info_sala('Sala "Ion Caramitru"');
+END;
+/
+
+BEGIN
+    info_sala('Sala "Toma Caragiu"');
+END;
+/
+
+BEGIN
+    info_sala('Sala Nu Exista');
+END;
+/
+
+BEGIN
+    info_sala('Sala Mare');
+END;
+/
+
+-- 7.
+CREATE OR REPLACE TYPE lista_mont_loc IS TABLE OF NUMBER(4);
+/
+
+CREATE OR REPLACE PROCEDURE info_festival(cod festival.cod_festival%TYPE)
+IS
+    CURSOR c_mont_loc(cod festival.cod_festival%TYPE) IS
+        SELECT m.cod_montare, titlu, t1.denumire, ad1.oras
+        FROM agenda a, montare m, piesa p, sala s, adresa ad1, adresa ad2, teatru t1, teatru t2
+        WHERE a.cod_festival = cod
+        AND a.cod_montare = m.cod_montare
+        AND a.cod_sala = s.cod_sala
+        AND s.cod_teatru = t1.cod_teatru
+        AND t1.cod_adresa = ad1.cod_adresa
+        AND m.cod_teatru = t2.cod_teatru
+        AND t2.cod_adresa = ad2.cod_adresa
+        AND ad1.oras = ad2.oras
+        AND m.cod_piesa = p.cod_piesa;
+    TYPE c_tip is REF CURSOR;
+    v_cursor c_tip;
+    v_montare montare.cod_montare%TYPE;
+    v_piesa piesa.titlu%TYPE;
+    v_teatru teatru.denumire%TYPE;
+    v_oras adresa.oras%TYPE;
+    v_nume persoana.nume%TYPE;
+    v_prenume persoana.prenume%TYPE;
+    v_suma contract.suma%TYPE := 0;
+    i NUMBER := 1;
+    v_denumire_fest festival.denumire%TYPE;
+    v_nr NUMBER;
+    v_total NUMBER;
+    v_buget montare.buget%TYPE;
+    montari lista_mont_loc := lista_mont_loc();
+    expresie VARCHAR2(100) := '';
+BEGIN
+    SELECT denumire INTO v_denumire_fest
+    FROM festival
+    WHERE cod_festival = cod;
+    OPEN c_mont_loc(cod);
+    LOOP
+        FETCH c_mont_loc INTO v_montare, v_piesa, v_teatru, v_oras;
+        montari.extend;
+        montari(i) := v_montare;
+        i := i + 1;
+        EXIT WHEN c_mont_loc%NOTFOUND;
+        IF i = 2 THEN 
+            dbms_output.new_line();
+            dbms_output.put_line('Piesele prezentate in festival, care au fost montate in teatre din localitatea organizatoare sunt urmatoarele: ');
+        END IF;
+        dbms_output.put_line('  piesa "' || v_piesa || '", montata la ' || v_teatru || ', din ' || v_oras || ';');
+    END LOOP;
+    v_nr := c_mont_loc%ROWCOUNT;
+    CLOSE c_mont_loc;
+    SELECT COUNT(cod_montare) INTO v_total
+    FROM agenda a
+    WHERE a.cod_festival = cod;
+    IF v_nr >= 0.5 * v_total AND v_nr > 0 THEN
+        OPEN v_cursor FOR SELECT DISTINCT nume, prenume
+                          FROM persoana p, artist a, distributie d, spec_art sa, specializare s
+                          WHERE p.cod_persoana = a.cod_persoana
+                          AND a.cod_persoana = d.cod_artist
+                          AND a.cod_persoana = sa.cod_artist
+                          AND sa.cod_specializare = s.cod_specializare
+                          AND s.cod_specializare = cod
+                          AND d.cod_montare IN (SELECT * FROM TABLE(montari));
+        dbms_output.put_line('Regizorii care au realizat montari in teatrele din localitatea organizatoare sunt: ');
+        LOOP
+            FETCH v_cursor INTO v_nume, v_prenume;
+            EXIT WHEN v_cursor%NOTFOUND;
+            dbms_output.put_line('  ' || v_prenume || ' ' || v_nume);
+        END LOOP;
+        CLOSE v_cursor;
+    ELSIF v_nr > 0 THEN 
+        OPEN v_cursor FOR SELECT SUM(suma), buget, m.cod_montare
+                          FROM contract c, montare m
+                          WHERE c.cod_montare(+) = m.cod_montare
+                          AND m.cod_montare IN (SELECT * FROM TABLE(montari))
+                          GROUP BY m.cod_montare, buget;
+        v_total := 0;
+        dbms_output.new_line();
+        dbms_output.put_line('Pentru realizarea montarilor din localitatea organizatoare, s-au alocat fonduri in valoare de: ');
+        LOOP 
+            FETCH v_cursor INTO v_suma, v_buget, v_montare;
+            EXIT WHEN v_cursor%NOTFOUND;
+            expresie := expresie || (v_buget + NVL(v_suma, 0)) || ' + ';
+            v_total := v_total + NVL(v_suma, 0) + v_buget;
+        END LOOP;
+        dbms_output.put_line(SUBSTR(expresie, 1, LENGTH(expresie) - 3) || ' = ' || v_total);
+        CLOSE v_cursor;
+    ELSE 
+        dbms_output.put_line('In festival nu a fost prezentata nicio piesa montata in localitatea organizatoare.');
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        dbms_output.put_line('Nu exista niciun festival cu codul introdus.');
+END info_festival;
+/
+
+BEGIN
+    info_festival(1);
+END;
+/
+
+BEGIN
+    info_festival(2);
+END;
+/
+
+BEGIN
+    info_festival(4);
+END;
+/
+
+BEGIN
+    info_festival(6);
+END;
+/
+
+-- 8.
+CREATE OR REPLACE TYPE nume_prenume IS OBJECT (
+    prenume VARCHAR2(25),
+    nume VARCHAR2(25));
+/
+
+CREATE OR REPLACE TYPE spect_sala IS OBJECT (
+    titlu VARCHAR2(70),
+    s VARCHAR2(50),
+    map MEMBER FUNCTION f RETURN VARCHAR2);
+/
+
+CREATE OR REPLACE TYPE BODY spect_sala AS
+  MAP MEMBER FUNCTION f RETURN VARCHAR2 IS
+  BEGIN
+     RETURN titlu;
+  END f;
+END;
+/
+
+CREATE OR REPLACE TYPE lista_spect IS TABLE OF spect_sala;
+/
+
+CREATE OR REPLACE FUNCTION info_act_luna(np nume_prenume, luna NUMBER) RETURN lista_spect IS
+    np_aux nume_prenume;
+    spectacole lista_spect;
+    IN_AFARA_STAGIUNII EXCEPTION;
+    LUNA_INVALIDA EXCEPTION;
+BEGIN
+    SELECT nume_prenume(nume, prenume) INTO np_aux
+    FROM persoana p, artist a
+    WHERE p.cod_persoana = a.cod_persoana
+    AND nume = np.nume AND prenume = np.prenume;
+    IF luna = 7 OR luna = 8 THEN
+        RAISE IN_AFARA_STAGIUNII;
+    ELSIF luna < 1 OR luna > 12 THEN
+        RAISE LUNA_INVALIDA;
+    END IF;
+    SELECT DISTINCT spect_sala(titlu, s.denumire) BULK COLLECT INTO spectacole
+    FROM montare m, piesa p, afis a, sala s, distributie d, artist art, persoana pers
+    WHERE m.cod_piesa = p.cod_piesa
+    AND m.cod_montare = a.cod_montare
+    AND a.cod_sala = s.cod_sala
+    AND d.cod_montare = m.cod_montare
+    AND d.cod_artist = art.cod_persoana
+    AND art.cod_persoana = pers.cod_persoana
+    AND pers.nume = np.nume AND pers.prenume = np.prenume
+    AND EXTRACT (MONTH FROM data) = luna; 
+    RETURN spectacole;
+EXCEPTION 
+    WHEN IN_AFARA_STAGIUNII THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Luna introdusa se afla in afara stagiunii teatrale.');
+    WHEN LUNA_INVALIDA THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Luna introdusa nu exista.');
+    WHEN NO_DATA_FOUND THEN 
+        RAISE_APPLICATION_ERROR(-20003, 'Nu exista niciun artist cu numele introdus.');
+    WHEN TOO_MANY_ROWS THEN
+        RAISE_APPLICATION_ERROR(-20004, 'Exista mai multi artisti cu numele ' || np.prenume || ' ' || np.nume || '.');
+END info_act_luna;
+/
+
+DECLARE
+    np nume_prenume := nume_prenume(null, null);
+    spectacole lista_spect := lista_spect();
+BEGIN
+    np.nume := 'Smirnov';
+    np.prenume := 'Serghei';
+    spectacole := info_act_luna(np, 3);
+    IF spectacole.COUNT = 0 THEN
+        dbms_output.put_line('Artistul nu participa la niciun spectacol programat in luna data.');
+    ELSIF
+        spectacole.COUNT = 1 THEN
+            dbms_output.put_line('In cursul lunii date, artistul participa la piesa ' || spectacole(1).titlu || ', ce are loc in ' || 
+            spectacole(1).s || '.');
+    ELSE 
+        dbms_output.put_line('In cursul lunii date, artistul participa la ' || spectacole.COUNT || ' piese. Acestea sunt urmatoarele:');
+        FOR i IN spectacole.FIRST..spectacole.LAST LOOP
+            dbms_output.put_line('Reprezentatia piesei ' || spectacole(i).titlu || ', ce va avea loc in ' || spectacole(i).s || '.');
+        END LOOP;
+    END IF;
+END;
+/
+
+DECLARE
+    np nume_prenume := nume_prenume(null, null);
+    spectacole lista_spect := lista_spect();
+BEGIN
+    np.nume := 'Smirnov';
+    np.prenume := 'Serghei';
+    spectacole := info_act_luna(np, 2);
+    IF spectacole.COUNT = 0 THEN
+        dbms_output.put_line('Artistul nu participa la niciun spectacol programat in luna data.');
+    ELSIF
+        spectacole.COUNT = 1 THEN
+            dbms_output.put_line('In cursul lunii date, artistul participa la piesa ' || spectacole(1).titlu || ', ce are loc in ' || 
+            spectacole(1).s || '.');
+    ELSE 
+        dbms_output.put_line('In cursul lunii date, artistul participa la ' || spectacole.COUNT || ' piese. Acestea sunt urmatoarele:');
+        FOR i IN spectacole.FIRST..spectacole.LAST LOOP
+            dbms_output.put_line('Reprezentatia piesei ' || spectacole(i).titlu || ', ce va avea loc in ' || spectacole(i).s || '.');
+        END LOOP;
+    END IF;
+END;
+/
+
+DECLARE
+    np nume_prenume := nume_prenume(null, null);
+    spectacole lista_spect := lista_spect();
+BEGIN
+    np.nume := 'Ion';
+    np.prenume := 'Diana Ruxandra';
+    spectacole := info_act_luna(np, 2);
+    IF spectacole.COUNT = 0 THEN
+        dbms_output.put_line('Artistul nu participa la niciun spectacol programat in luna data.');
+    ELSIF
+        spectacole.COUNT = 1 THEN
+            dbms_output.put_line('In cursul lunii date, artistul participa la piesa "' || spectacole(1).titlu || '", ce are loc in ' || 
+            spectacole(1).s || '.');
+    ELSE 
+        dbms_output.put_line('In cursul lunii date, artistul participa la ' || spectacole.COUNT || ' piese. Acestea sunt urmatoarele:');
+        FOR i IN spectacole.FIRST..spectacole.LAST LOOP
+            dbms_output.put_line('Reprezentatia piesei ' || spectacole(i).titlu || ', ce va avea loc in ' || spectacole(i).s || '.');
+        END LOOP;
+    END IF;
+END;
+/
+
+DECLARE
+    np nume_prenume := nume_prenume(null, null);
+    spectacole lista_spect := lista_spect();
+BEGIN
+    np.nume := 'Rusu';
+    np.prenume := 'Marian';
+    spectacole := info_act_luna(np, 2);
+END;
+/
+
+DECLARE
+    np nume_prenume := nume_prenume(null, null);
+    spectacole lista_spect := lista_spect();
+BEGIN
+    np.nume := 'Rusu';
+    np.prenume := 'Mircea';
+    spectacole := info_act_luna(np, 2);
+END;
+/
+
+DECLARE
+    np nume_prenume := nume_prenume(null, null);
+    spectacole lista_spect := lista_spect();
+BEGIN
+    np.nume := 'Smirnov';
+    np.prenume := 'Serghei';
+    spectacole := info_act_luna(np, 7);
+END;
+/
+
+DECLARE
+    np nume_prenume := nume_prenume(null, null);
+    spectacole lista_spect := lista_spect();
+BEGIN
+    np.nume := 'Smirnov';
+    np.prenume := 'Serghei';
+    spectacole := info_act_luna(np, 13); END;
+/
+
+-- 9.
+CREATE OR REPLACE TYPE piesa_teatru IS OBJECT (
+        t VARCHAR2(50),
+        buget NUMBER(6, 2),
+        dif NUMBER(6, 2),
+        nr_montari NUMBER,
+        nr_reprezentatii NUMBER, 
+        nr_participari NUMBER
+    );
+/
+
+CREATE OR REPLACE TYPE tab_pt IS TABLE OF piesa_teatru;
+/
+
+ALTER TABLE piesa
+ADD (informatii_suplimentare tab_pt) NESTED TABLE informatii_suplimentare STORE AS coloana_col;
+
+CREATE OR REPLACE PROCEDURE situatie_montari (an1 piesa.an_publicare%TYPE, an2 piesa.an_publicare%TYPE, p piesa.titlu%TYPE) IS
+    cod_p piesa.cod_piesa%TYPE;
+    an piesa.an_publicare%TYPE;
+    t piesa.titlu%TYPE;
+    TYPE v_coduri IS TABLE OF piesa.cod_piesa%TYPE;
+    lista_piese_interval v_coduri := v_coduri();
+    info tab_pt := tab_pt();
+    nr NUMBER := 1;
+    dif_ant montare.buget%TYPE := 0;
+    buget_mediu montare.buget%TYPE;
+    IN_AFARA_PERIOADEI_DE_INTERES EXCEPTION;
+    INTERVAL_INVALID EXCEPTION;
+BEGIN
+    SELECT cod_piesa INTO cod_p
+    FROM piesa
+    WHERE titlu = p;
+    SELECT an_publicare INTO an
+    FROM piesa
+    WHERE cod_piesa = cod_p;
+    IF an1 > an2 THEN
+        RAISE INTERVAL_INVALID;
+    END IF;
+    IF an < an1 OR an > an2 THEN
+        RAISE IN_AFARA_PERIOADEI_DE_INTERES;
+    END IF;
+    SELECT cod_piesa BULK COLLECT INTO lista_piese_interval
+    FROM piesa
+    WHERE an_publicare BETWEEN an1 AND an2;
+    FOR i IN lista_piese_interval.FIRST..lista_piese_interval.LAST LOOP
+        SELECT titlu INTO t
+        FROM piesa 
+        WHERE cod_piesa = lista_piese_interval(i);
+        dbms_output.put_line('Informatii despre montarile piesei ' || t || ':');
+        info.DELETE;
+        nr := 1;
+        FOR j IN (SELECT t1.denumire ttr, buget,
+                  (SELECT SUM(buget) FROM montare m, teatru t WHERE cod_piesa = lista_piese_interval(i)
+                                                              AND m.cod_teatru = t.cod_teatru
+                                                              AND t.denumire = t1.denumire)
+                  - (SELECT AVG(buget) FROM montare m, teatru t WHERE m.cod_teatru = t.cod_teatru
+                                                                AND t.denumire = t1.denumire) as dif,
+                 (SELECT COUNT(m.cod_montare) FROM montare m, teatru t WHERE cod_piesa = lista_piese_interval(i)
+                                                                                                                  AND m.cod_teatru = t.cod_teatru
+                                                                                                                  AND t.denumire = t1.denumire) as nr_mont,
+                 (SELECT COUNT(m.cod_montare) FROM montare m, afis a, teatru t WHERE cod_piesa = lista_piese_interval(i)
+                                                                                AND m.cod_montare = a.cod_montare
+                                                                                AND m.cod_teatru = t.cod_teatru
+                                                                                AND t.denumire = t1.denumire) as nr_reprez,
+                 (SELECT COUNT(m.cod_montare) FROM montare m, agenda a, festival f, teatru t WHERE cod_piesa = lista_piese_interval(i)
+                                                                                             AND m.cod_montare = a.cod_montare
+                                                                                             AND m.cod_teatru = t.cod_teatru
+                                                                                             AND t.denumire = t1.denumire
+                                                                                             AND a.cod_festival = f.cod_festival
+                                                                                             AND f.denumire = 'Festivalul International de Teatru') as nr_particip
+                  FROM montare m, teatru t1
+                  WHERE m.cod_piesa = lista_piese_interval(i)
+                  AND m.cod_teatru = t1.cod_teatru
+                  ORDER BY 3 DESC) LOOP
+            info.extend;
+            info(nr) := piesa_teatru(j.ttr, j.buget, j.dif, j.nr_mont, j.nr_reprez, j.nr_particip);
+            nr := nr + 1;
+        END LOOP;
+        FOR j IN info.FIRST..info.LAST LOOP
+            dbms_output.put_line('  La ' || info(j).t || ', unde bugetul alocat a fost de ' || info(j).buget || ',');
+            IF info(j).nr_montari = 1 THEN
+                dbms_output.put_line('  s-a realizat o montare a piesei, ');
+                IF info(j).nr_reprezentatii = 0 THEN
+                    dbms_output.put_line('  care nu are programate reprezentatii in teatrul unde a fost realizata');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  si nici participari in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  dar are programata o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  dar are programate '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                ELSIF info(j).nr_reprezentatii = 1 THEN
+                    dbms_output.put_line('  care are programata o reprezentatie in teatrul unde a fost realizata');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  dar nicio participare in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  si o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  si programate '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                ELSE
+                    dbms_output.put_line('  care are programate ' || info(j).nr_reprezentatii || ' reprezentatii in teatrul unde a fost realizata');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  dar nicio participare in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  si o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  si '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                END IF;
+            ELSE
+                dbms_output.put_line('  s-au realizat ' || info(j).nr_montari || ' montari ale piesei, ');
+                IF info(j).nr_reprezentatii = 0 THEN
+                    dbms_output.put_line('   care nu au programate reprezentatii in teatrul unde a fost realizata');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  si nici participari in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  dar au programata o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  , dar au programate '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                ELSIF info(j).nr_reprezentatii = 1 THEN
+                    dbms_output.put_line('  au programata o reprezentatie in teatrul unde a fost realizata');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  , dar nicio participare in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  , si o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  , si '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                ELSE
+                    dbms_output.put_line(' au programate ' || info(j).nr_reprezentatii || ' reprezentatii in teatrul unde au fost realizate');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  dar nicio participare in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  , si o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  , si '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                END IF;
+            END IF;
+            dbms_output.new_line();
+        END LOOP;
+        dbms_output.new_line();
+        UPDATE piesa
+        SET informatii_suplimentare = info
+        WHERE cod_piesa = lista_piese_interval(i);
+    END LOOP;
+    SELECT informatii_suplimentare INTO info
+    FROM piesa
+    WHERE cod_piesa = cod_p;
+    dbms_output.put_line('Primele trei pozitii in clasamentul montarilor piesei ' || p || ' sunt ocupate de: ');
+    nr := 0;
+    FOR i IN info.FIRST..info.LAST LOOP
+        IF nr <= 3 THEN
+            IF info(i).dif <> dif_ant THEN
+                IF nr < 3 THEN
+                    nr := nr + 1;
+                    dbms_output.put_line('   ' || nr || '.' || info(i).t || ', unde bugetul alocat a fost de ' || info(i).buget
+                                         || ', iar diferenta dintre bugetul alocat acestei montari si bugetul mediu alocat unei montari
+                                         in teatrul respectiv este de ' || info(i).dif || '.');
+                END IF;
+            ELSE 
+                dbms_output.put_line('   ' || nr || '.' || info(i).t || ', unde bugetul alocat a fost de ' || info(i).buget
+                                     || ', iar diferenta dintre bugetul alocat acestei montari si bugetul mediu alocat unei montari
+                                     in teatrul respectiv este de ' || info(i).dif || '.');
+            END IF;
+        END IF;
+        dif_ant := info(i).dif;
+    END LOOP;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        dbms_output.put_line('Nu exista nicio piesa cu titlul dat.');
+    WHEN TOO_MANY_ROWS THEN
+        dbms_output.put_line('Exista mai multe piese cu titlul dat.');
+    WHEN INTERVAL_INVALID THEN
+        dbms_output.put_line('Cei doi ani introdusi nu formeaza un interval valid.');
+    WHEN IN_AFARA_PERIOADEI_DE_INTERES THEN
+        dbms_output.put_line('Piesa introdusa a fost publicata in afara perioadei alese.');
+    WHEN OTHERS THEN
+        dbms_output.put_line('Alta eroare.');
+END situatie_montari;
+/
+
+DECLARE
+BEGIN
+    situatie_montari(1900, 1800, 'O noapte frumoasa');
+END;
+/
+
+DECLARE
+BEGIN
+    situatie_montari(1800, 1900, 'Pescarusul');
+END;
+/
+
+DECLARE
+BEGIN
+    situatie_montari(1900, 1800, 'O noapte furtunoasa');
+END;
+/
+
+DECLARE
+BEGIN
+    situatie_montari(1700, 1800, 'O noapte furtunoasa');
+END;
+/
+
+DECLARE
+BEGIN
+    situatie_montari(1800, 1900, 'O noapte furtunoasa');
+END;
+/
+
+ALTER TABLE piesa
+DROP COLUMN informatii_suplimentare;
+
+-- 10.
+CREATE OR REPLACE TRIGGER conditii_angajare 
+    BEFORE INSERT OR DELETE ON tehnician
+DECLARE
+    nr_ang_total NUMBER;
+    nr_ang_luna NUMBER;
+    nr_spect_luna NUMBER;
+BEGIN
+    SELECT COUNT(cod_persoana) INTO nr_ang_total
+    FROM tehnician;
+    SELECT COUNT(cod_persoana) INTO nr_ang_luna
+    FROM tehnician
+    WHERE EXTRACT (MONTH FROM data_angajarii) = EXTRACT (MONTH FROM sysdate)
+    AND EXTRACT (YEAR FROM data_angajarii) = EXTRACT (YEAR FROM sysdate);
+    SELECT COUNT(cod_montare) INTO nr_spect_luna
+    FROM afis
+    WHERE EXTRACT (MONTH FROM data) = EXTRACT (MONTH FROM sysdate)
+    AND EXTRACT (YEAR FROM data) = EXTRACT (YEAR FROM sysdate);
+    IF nr_ang_luna >= nr_spect_luna / 2 THEN
+        IF INSERTING THEN 
+            RAISE_APPLICATION_ERROR(-20001, 'Au fost angajati deja suficienti tehnicieni, pentru spectacolele din luna curenta.');
+        END IF;
+    END IF;
+    IF nr_ang_total < nr_spect_luna / 2 THEN
+        IF DELETING THEN 
+            RAISE_APPLICATION_ERROR(-20002, 'Nu se pot efectua concedieri, deoarece deja exista un deficit de personal tehnic.');
+        END IF;
+    END IF;
+END;
+/
+
+DELETE FROM tehnician WHERE cod_persoana BETWEEN 47 AND 62;
+
+DELETE FROM tehnician WHERE cod_persoana = 6;
+
+INSERT INTO tehnician (cod_persoana, cod_teatru) VALUES (47, 2);
+INSERT INTO tehnician (cod_persoana, cod_teatru) VALUES (48, 2);
+INSERT INTO tehnician (cod_persoana, cod_teatru) VALUES (49, 2);
+INSERT INTO tehnician (cod_persoana, cod_teatru) VALUES (50, 3);
+INSERT INTO tehnician (cod_persoana, cod_teatru) VALUES (51, 4);
+INSERT INTO tehnician (cod_persoana, cod_teatru) VALUES (52, 4);
+INSERT INTO tehnician (cod_persoana, cod_teatru) VALUES (53, 4);
+INSERT INTO tehnician (cod_persoana, cod_teatru) VALUES (54, 5);
+
+INSERT INTO tehnician (cod_persoana, cod_teatru) VALUES (55, 5);
+
+rollback;
+
+-- 11.
+CREATE OR REPLACE TRIGGER conditii_agenda_festival
+    BEFORE UPDATE OF data OR DELETE ON agenda
+    FOR EACH ROW
+DECLARE
+    pragma autonomous_transaction;
+    data_inc festival.data_inceperii%TYPE;
+    data_fin festival.data_incheierii%TYPE;
+    gen_p piesa.gen%TYPE;
+    nr_montari_gen NUMBER;
+    nr_montari_fest NUMBER;
+BEGIN
+    IF UPDATING THEN 
+        SELECT data_inceperii INTO data_inc
+        FROM festival
+        WHERE cod_festival = :OLD.cod_festival;
+        SELECT data_incheierii INTO data_fin
+        FROM festival
+        WHERE cod_festival = :OLD.cod_festival;
+        IF (:NEW.data < data_inc) OR (:NEW.data > data_fin) THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Nu se poate modifica data reprezentatiei la valoarea ' || :NEW.data || ', deoarece aceasta data se afla '
+                                             || ' in afara intervalului de desfasurare al unui festival la care montarea participa.');
+        END IF;
+    ELSE
+        SELECT gen INTO gen_p
+        FROM montare m, piesa p
+        WHERE m.cod_montare = :OLD.cod_montare
+        AND m.cod_piesa = p.cod_piesa;
+        SELECT COUNT(m.cod_montare) INTO nr_montari_gen
+        FROM agenda a, montare m, piesa p
+        WHERE a.cod_festival = :OLD.cod_festival
+        AND a.cod_montare = m.cod_montare
+        AND m.cod_piesa = p.cod_piesa
+        AND p.gen = gen_p;
+        SELECT COUNT(cod_montare) INTO nr_montari_fest
+        FROM agenda
+        WHERE cod_festival = :OLD.cod_festival;
+        IF nr_montari_gen <= 0.3 * nr_montari_fest THEN
+            RAISE_APPLICATION_ERROR(-20004, 'Montarea nu poate fi stearsa de pe agenda festivalului, deoarece proportia genurilor dramatice prezente '
+        || 'in festival ar deveni dezechilibrata.');
+        END IF;
+    END IF;
+END;
+/
+
+UPDATE agenda
+SET data = TO_DATE('11-10-2022', 'dd-mm-yyyy')
+WHERE cod_montare = 4;
+
+DELETE FROM agenda WHERE cod_montare = 12;
+
+-- 12.
+CREATE TABLE info_ldd (
+    utilizator VARCHAR2(30),
+    moment TIMESTAMP(3),
+    comanda VARCHAR2(10),
+    tabela VARCHAR2(20)
+);
+
+CREATE OR REPLACE TRIGGER gestiune_comenzi_ldd
+    AFTER CREATE OR ALTER OR DROP ON SCHEMA
+DECLARE
+    data DATE;
+BEGIN
+    IF SYS.SYSEVENT = 'CREATE' THEN
+        dbms_output.put_line('S-au adaugat detaliile crearii efectuate, in tabela INFO_LDD.' );
+    ELSIF SYS.SYSEVENT = 'ALTER' THEN
+        dbms_output.put_line('S-au adaugat detaliile modificarii efectuate, in tabela INFO_LDD.' );
+        SELECT created INTO data
+        FROM dba_objects
+        WHERE object_name = SYS.DICTIONARY_OBJ_NAME;
+        IF ROUND(SYSDATE - data) = 0 THEN
+            dbms_output.put_line('A fost modificata structura unei tabele care NU face parte din schema de baza a proiectului.');
+        ELSE 
+            dbms_output.put_line('Atentie! A fost modificata structura unei tabele care face parte din schema de baza a proiectului.');
+        END IF;
+        SELECT last_ddl_time INTO data
+        FROM dba_objects
+        WHERE object_name = SYS.DICTIONARY_OBJ_NAME;
+        IF ROUND(SYSDATE - data) = 0 THEN
+            dbms_output.put_line('Atentie! Ati efectuat modificari asupra unui obiect care a mai suferit modificari structurale in ultimele 24 de ore.');
+        END IF;
+    ELSE
+        dbms_output.put_line('S-au adaugat detaliile stergerii efectuate, in tabela INFO_LDD.');
+    END IF;
+    INSERT INTO info_ldd VALUES (
+        SYS.LOGIN_USER,
+        SYSTIMESTAMP(3),
+        SYS.SYSEVENT,
+        SYS.DICTIONARY_OBJ_NAME
+    );
+END;
+/
+    
+CREATE TABLE tabel_aux (c NUMBER(3));
+
+ALTER TABLE tabel_aux 
+MODIFY c NUMBER(2);
+
+DROP TABLE tabel_aux;
+
+SELECT * FROM info_ldd;
+
+ALTER TABLE persoana
+MODIFY nr_telefon NUMBER(10);
+
+SELECT * FROM info_ldd;
+
+DROP TRIGGER gestiune_comenzi_ldd;
+
+DROP TABLE info_ldd;
+
+-- 13.
+CREATE OR REPLACE PACKAGE exercitii AS
+    PROCEDURE info_sala(denumire_sala sala.denumire%TYPE);
+    PROCEDURE info_festival(cod festival.cod_festival%TYPE);
+    FUNCTION info_act_luna(np nume_prenume, luna NUMBER) RETURN lista_spect;
+    PROCEDURE situatie_montari (an1 piesa.an_publicare%TYPE, an2 piesa.an_publicare%TYPE, p piesa.titlu%TYPE);
+END exercitii;
+/
+
+CREATE OR REPLACE PACKAGE BODY exercitii AS
+PROCEDURE info_sala(denumire_sala sala.denumire%TYPE) IS
+    TYPE info_pers IS RECORD (
+            prenume persoana.prenume%TYPE,
+            nume persoana.nume%TYPE,
+            spec specializare.denumire%TYPE,
+            cod_spec specializare.cod_specializare%TYPE
+            );
+    TYPE lista_artisti IS TABLE OF info_pers;
+    artisti lista_artisti;
+    TYPE info_montare IS RECORD (
+        data_pr montare.data_premierei%TYPE, 
+        gen piesa.gen%TYPE,
+        distrib lista_artisti
+        );
+    TYPE lista_info_montari IS TABLE OF info_montare INDEX BY piesa.titlu%TYPE;
+    piese lista_info_montari;
+    cod sala.cod_sala%TYPE;
+    p piesa.titlu%TYPE;
+    nume_ant persoana.nume%TYPE;
+    prenume_ant persoana.prenume%TYPE;
+    specializari VARCHAR2(30);
+BEGIN
+    SELECT cod_sala INTO cod
+    FROM sala
+    WHERE denumire = denumire_sala;
+    FOR i IN
+        (SELECT m.cod_montare cod, titlu, data_premierei, gen
+         FROM piesa p, montare m, afis a
+         WHERE p.cod_piesa = m.cod_piesa
+         AND m.cod_montare = a.cod_montare
+         AND a.cod_sala = cod) LOOP
+        SELECT p.prenume, p.nume, s.denumire, s.cod_specializare BULK COLLECT INTO artisti
+        FROM persoana p, artist a, distributie d, afis af, spec_art sa, specializare s
+        WHERE p.cod_persoana = a.cod_persoana
+        AND a.cod_persoana = d.cod_artist
+        AND d.cod_montare = i.cod
+        AND i.cod = af.cod_montare
+        AND a.cod_persoana = sa.cod_artist
+        AND sa.cod_specializare = s.cod_specializare
+        AND functie = s.denumire
+        ORDER BY 2, 1;
+        SELECT i.data_premierei, i.gen INTO piese(i.titlu).data_pr, piese(i.titlu).gen
+        FROM DUAL;
+        piese(i.titlu).distrib := artisti;
+    END LOOP;
+    dbms_output.put_line('Detaliile montarilor desfasurate in ' || denumire_sala || ' sunt urmatoarele:');
+    p := piese.first;
+    LOOP
+        EXIT WHEN p IS NULL;
+        dbms_output.put_line('Montarea piesei "' || p || '" (' || NVL(piese(p).gen, 'gen nespecificat') || '), a carei data a premierei este ' 
+                              || NVL(TO_CHAR(piese(p).data_pr, 'DD-MON-YYYY'), 'nespecificata') || '.');
+        IF piese(p).distrib.COUNT > 0 THEN
+           dbms_output.put_line('La realizarea acestei montari au participat urmatorii artisti: ');
+        ELSE 
+            dbms_output.put_line('Nu se cunosc detalii despre artistii care au participat la aceast montare.');
+            p := piese.next(p);
+            CONTINUE;
+        END IF;
+        prenume_ant := piese(p).distrib(piese(p).distrib.FIRST).prenume;
+        nume_ant := piese(p).distrib(piese(p).distrib.FIRST).nume;
+        specializari := '';
+        FOR i IN 1..piese(p).distrib.count LOOP
+            IF (piese(p).distrib(i).prenume  <> prenume_ant OR piese(p).distrib(i).nume <> nume_ant) THEN
+                dbms_output.put_line('  ' || prenume_ant || ' ' || nume_ant || ' - ' || specializari);
+                specializari := piese(p).distrib(i).spec || ', ';
+            ELSE
+                specializari := piese(p).distrib(i).spec || ', ' || specializari;
+            END IF;
+            prenume_ant := piese(p).distrib(i).prenume;
+            nume_ant := piese(p).distrib(i).nume;
+        END LOOP;
+        dbms_output.put_line('  ' || piese(p).distrib(piese(p).distrib.COUNT).prenume || ' ' || piese(p).distrib(piese(p).distrib.COUNT).nume
+                             || ' - ' || SUBSTR(specializari, 1, LENGTH(specializari) - 2) || '.');
+        dbms_output.new_line();
+        p := piese.next(p);
+    END LOOP;
+EXCEPTION
+    WHEN TOO_MANY_ROWS THEN
+        dbms_output.put_line('Exista mai multe sali cu denumirea "' || denumire_sala || '".');
+    WHEN NO_DATA_FOUND THEN
+        dbms_output.put_line('Nu exista nicio sala cu denumirea "' || denumire_sala || '".');
+END info_sala;
+
+PROCEDURE info_festival(cod festival.cod_festival%TYPE)
+IS
+    CURSOR c_mont_loc(cod festival.cod_festival%TYPE) IS
+        SELECT m.cod_montare, titlu, t1.denumire, ad1.oras
+        FROM agenda a, montare m, piesa p, sala s, adresa ad1, adresa ad2, teatru t1, teatru t2
+        WHERE a.cod_festival = cod
+        AND a.cod_montare = m.cod_montare
+        AND a.cod_sala = s.cod_sala
+        AND s.cod_teatru = t1.cod_teatru
+        AND t1.cod_adresa = ad1.cod_adresa
+        AND m.cod_teatru = t2.cod_teatru
+        AND t2.cod_adresa = ad2.cod_adresa
+        AND ad1.oras = ad2.oras
+        AND m.cod_piesa = p.cod_piesa;
+    TYPE c_tip is REF CURSOR;
+    v_cursor c_tip;
+    v_montare montare.cod_montare%TYPE;
+    v_piesa piesa.titlu%TYPE;
+    v_teatru teatru.denumire%TYPE;
+    v_oras adresa.oras%TYPE;
+    v_nume persoana.nume%TYPE;
+    v_prenume persoana.prenume%TYPE;
+    v_suma contract.suma%TYPE := 0;
+    i NUMBER := 1;
+    v_denumire_fest festival.denumire%TYPE;
+    v_nr NUMBER;
+    v_total NUMBER;
+    v_buget montare.buget%TYPE;
+    montari lista_mont_loc := lista_mont_loc();
+BEGIN
+    SELECT denumire INTO v_denumire_fest
+    FROM festival
+    WHERE cod_festival = cod;
+    OPEN c_mont_loc(cod);
+    LOOP
+        FETCH c_mont_loc INTO v_montare, v_piesa, v_teatru, v_oras;
+        montari.extend;
+        montari(i) := v_montare;
+        i := i + 1;
+        EXIT WHEN c_mont_loc%NOTFOUND;
+        IF i = 2 THEN 
+            dbms_output.new_line();
+            dbms_output.put_line('Piesele prezentate in festival, care au fost montate in teatre din localitatea organizatoare sunt urmatoarele: ');
+        END IF;
+        dbms_output.put_line('  piesa "' || v_piesa || '", montata la ' || v_teatru || ', din ' || v_oras || ';');
+    END LOOP;
+    v_nr := c_mont_loc%ROWCOUNT;
+    CLOSE c_mont_loc;
+    SELECT COUNT(cod_montare) INTO v_total
+    FROM agenda a
+    WHERE a.cod_festival = cod;
+    IF v_nr >= 0.5 * v_total AND v_nr > 0 THEN
+        OPEN v_cursor FOR SELECT DISTINCT nume, prenume
+                          FROM persoana p, artist a, distributie d, spec_art sa, specializare s
+                          WHERE p.cod_persoana = a.cod_persoana
+                          AND a.cod_persoana = d.cod_artist
+                          AND a.cod_persoana = sa.cod_artist
+                          AND sa.cod_specializare = s.cod_specializare
+                          AND s.cod_specializare = cod
+                          AND d.cod_montare IN (SELECT * FROM TABLE(montari));
+        dbms_output.put_line('Regizorii care au realizat montari in teatrele din localitatea organizatoare sunt: ');
+        LOOP
+            FETCH v_cursor INTO v_nume, v_prenume;
+            EXIT WHEN v_cursor%NOTFOUND;
+            dbms_output.put_line('  ' || v_prenume || ' ' || v_nume);
+        END LOOP;
+        CLOSE v_cursor;
+    ELSIF v_nr > 0 THEN 
+        OPEN v_cursor FOR SELECT SUM(suma), buget, m.cod_montare
+                          FROM contract c, montare m
+                          WHERE c.cod_montare(+) = m.cod_montare
+                          AND m.cod_montare IN (SELECT * FROM TABLE(montari))
+                          GROUP BY m.cod_montare, buget;
+        v_total := 0;
+        LOOP 
+            FETCH v_cursor INTO v_suma, v_buget, v_montare;
+            EXIT WHEN v_cursor%NOTFOUND;
+            v_total := v_total + NVL(v_suma, 0) + v_buget;
+        END LOOP;
+        CLOSE v_cursor;
+        dbms_output.new_line();
+        dbms_output.put_line('Pentru realizarea montarilor din localitatea organizatoare, s-au alocat fonduri in valoare de: ' || v_total);
+    ELSE 
+        dbms_output.put_line('In festival nu a fost prezentata nicio piesa montata in localitatea organizatoare.');
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        dbms_output.put_line('Nu exista niciun festival cu codul introdus.');
+END info_festival;
+
+FUNCTION info_act_luna(np nume_prenume, luna NUMBER) RETURN lista_spect IS
+    np_aux nume_prenume;
+    spectacole lista_spect;
+    IN_AFARA_STAGIUNII EXCEPTION;
+    LUNA_INVALIDA EXCEPTION;
+BEGIN
+    SELECT nume_prenume(nume, prenume) INTO np_aux
+    FROM persoana p, artist a
+    WHERE p.cod_persoana = a.cod_persoana
+    AND nume = np.nume AND prenume = np.prenume;
+    IF luna = 7 OR luna = 8 THEN
+        RAISE IN_AFARA_STAGIUNII;
+    ELSIF luna < 1 OR luna > 12 THEN
+        RAISE LUNA_INVALIDA;
+    END IF;
+    SELECT DISTINCT spect_sala(titlu, s.denumire) BULK COLLECT INTO spectacole
+    FROM montare m, piesa p, afis a, sala s, distributie d, artist art, persoana pers
+    WHERE m.cod_piesa = p.cod_piesa
+    AND m.cod_montare = a.cod_montare
+    AND a.cod_sala = s.cod_sala
+    AND d.cod_montare = m.cod_montare
+    AND d.cod_artist = art.cod_persoana
+    AND art.cod_persoana = pers.cod_persoana
+    AND pers.nume = np.nume AND pers.prenume = np.prenume
+    AND EXTRACT (MONTH FROM data) = luna; 
+    RETURN spectacole;
+EXCEPTION 
+    WHEN IN_AFARA_STAGIUNII THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Luna introdusa se afla in afara stagiunii teatrale.');
+    WHEN LUNA_INVALIDA THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Luna introdusa nu exista.');
+    WHEN NO_DATA_FOUND THEN 
+        RAISE_APPLICATION_ERROR(-20003, 'Nu exista niciun artist cu numele introdus.');
+    WHEN TOO_MANY_ROWS THEN
+        RAISE_APPLICATION_ERROR(-20004, 'Exista mai multi artisti cu numele ' || np.prenume || ' ' || np.nume || '.');
+END info_act_luna;
+
+PROCEDURE situatie_montari (an1 piesa.an_publicare%TYPE, an2 piesa.an_publicare%TYPE, p piesa.titlu%TYPE) IS
+    cod_p piesa.cod_piesa%TYPE;
+    an piesa.an_publicare%TYPE;
+    t piesa.titlu%TYPE;
+    TYPE v_coduri IS TABLE OF piesa.cod_piesa%TYPE;
+    lista_piese_interval v_coduri := v_coduri();
+    info tab_pt := tab_pt();
+    nr NUMBER := 1;
+    dif_ant montare.buget%TYPE := 0;
+    buget_mediu montare.buget%TYPE;
+    IN_AFARA_PERIOADEI_DE_INTERES EXCEPTION;
+    INTERVAL_INVALID EXCEPTION;
+BEGIN
+    SELECT cod_piesa INTO cod_p
+    FROM piesa
+    WHERE titlu = p;
+    SELECT an_publicare INTO an
+    FROM piesa
+    WHERE cod_piesa = cod_p;
+    IF an1 > an2 THEN
+        RAISE INTERVAL_INVALID;
+    END IF;
+    IF an < an1 OR an > an2 THEN
+        RAISE IN_AFARA_PERIOADEI_DE_INTERES;
+    END IF;
+    SELECT cod_piesa BULK COLLECT INTO lista_piese_interval
+    FROM piesa
+    WHERE an_publicare BETWEEN an1 AND an2;
+    FOR i IN lista_piese_interval.FIRST..lista_piese_interval.LAST LOOP
+        SELECT titlu INTO t
+        FROM piesa 
+        WHERE cod_piesa = lista_piese_interval(i);
+        dbms_output.put_line('Informatii despre montarile piesei ' || t || ':');
+        info.DELETE;
+        nr := 1;
+        FOR j IN (SELECT t1.denumire ttr, buget,
+                  (SELECT SUM(buget) FROM montare m, teatru t WHERE cod_piesa = lista_piese_interval(i)
+                                                              AND m.cod_teatru = t.cod_teatru
+                                                              AND t.denumire = t1.denumire)
+                  - (SELECT AVG(buget) FROM montare m, teatru t WHERE m.cod_teatru = t.cod_teatru
+                                                                AND t.denumire = t1.denumire) as dif,
+                 (SELECT COUNT(m.cod_montare) FROM montare m, teatru t WHERE cod_piesa = lista_piese_interval(i)
+                                                                                                                  AND m.cod_teatru = t.cod_teatru
+                                                                                                                  AND t.denumire = t1.denumire) as nr_mont,
+                 (SELECT COUNT(m.cod_montare) FROM montare m, afis a, teatru t WHERE cod_piesa = lista_piese_interval(i)
+                                                                                AND m.cod_montare = a.cod_montare
+                                                                                AND m.cod_teatru = t.cod_teatru
+                                                                                AND t.denumire = t1.denumire) as nr_reprez,
+                 (SELECT COUNT(m.cod_montare) FROM montare m, agenda a, festival f, teatru t WHERE cod_piesa = lista_piese_interval(i)
+                                                                                             AND m.cod_montare = a.cod_montare
+                                                                                             AND m.cod_teatru = t.cod_teatru
+                                                                                             AND t.denumire = t1.denumire
+                                                                                             AND a.cod_festival = f.cod_festival
+                                                                                             AND f.denumire = 'Festivalul International de Teatru') as nr_particip
+                  FROM montare m, teatru t1
+                  WHERE m.cod_piesa = lista_piese_interval(i)
+                  AND m.cod_teatru = t1.cod_teatru
+                  ORDER BY 3 DESC) LOOP
+            info.extend;
+            info(nr) := piesa_teatru(j.ttr, j.buget, j.dif, j.nr_mont, j.nr_reprez, j.nr_particip);
+            nr := nr + 1;
+        END LOOP;
+        FOR j IN info.FIRST..info.LAST LOOP
+            dbms_output.put_line('  La ' || info(j).t || ', unde bugetul alocat a fost de ' || info(j).buget || ',');
+            IF info(j).nr_montari = 1 THEN
+                dbms_output.put_line('  s-a realizat o montare a piesei, ');
+                IF info(j).nr_reprezentatii = 0 THEN
+                    dbms_output.put_line('  care nu are programate reprezentatii in teatrul unde a fost realizata');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  si nici participari in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  dar are programata o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  dar are programate '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                ELSIF info(j).nr_reprezentatii = 1 THEN
+                    dbms_output.put_line('  care are programata o reprezentatie in teatrul unde a fost realizata');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  dar nicio participare in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  si o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  si programate '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                ELSE
+                    dbms_output.put_line('  care are programate ' || info(j).nr_reprezentatii || ' reprezentatii in teatrul unde a fost realizata');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  dar nicio participare in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  si o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  si '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                END IF;
+            ELSE
+                dbms_output.put_line('  s-au realizat ' || info(j).nr_montari || ' montari ale piesei, ');
+                IF info(j).nr_reprezentatii = 0 THEN
+                    dbms_output.put_line('   care nu au programate reprezentatii in teatrul unde a fost realizata');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  si nici participari in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  dar au programata o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  , dar au programate '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                ELSIF info(j).nr_reprezentatii = 1 THEN
+                    dbms_output.put_line('  au programata o reprezentatie in teatrul unde a fost realizata');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  , dar nicio participare in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  , si o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  , si '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                ELSE
+                    dbms_output.put_line(' au programate ' || info(j).nr_reprezentatii || ' reprezentatii in teatrul unde au fost realizate');
+                    IF info(j).nr_participari = 0 THEN
+                        dbms_output.put_line('  dar nicio participare in festivaluri.');
+                    ELSIF info(j).nr_participari = 1 then
+                        dbms_output.put_line('  , si o participare in festival.');
+                    ELSE 
+                        dbms_output.put_line('  , si '  || info(j).nr_participari || ' participari in festivaluri.');
+                    END IF;
+                END IF;
+            END IF;
+            dbms_output.new_line();
+        END LOOP;
+        dbms_output.new_line();
+        UPDATE piesa
+        SET informatii_suplimentare = info
+        WHERE cod_piesa = lista_piese_interval(i);
+    END LOOP;
+    SELECT informatii_suplimentare INTO info
+    FROM piesa
+    WHERE cod_piesa = cod_p;
+    dbms_output.put_line('Primele trei pozitii in clasamentul montarilor piesei ' || p || ' sunt ocupate de: ');
+    nr := 0;
+    FOR i IN info.FIRST..info.LAST LOOP
+        IF nr <= 3 THEN
+            IF info(i).dif <> dif_ant THEN
+                IF nr < 3 THEN
+                    nr := nr + 1;
+                    dbms_output.put_line('   ' || nr || '.' || info(i).t || ', unde bugetul alocat a fost de ' || info(i).buget
+                                         || ', iar diferenta dintre bugetul alocat acestei montari si bugetul mediu alocat unei montari
+                                         in teatrul respectiv este de ' || info(i).dif || '.');
+                END IF;
+            ELSE 
+                dbms_output.put_line('   ' || nr || '.' || info(i).t || ', unde bugetul alocat a fost de ' || info(i).buget
+                                     || ', iar diferenta dintre bugetul alocat acestei montari si bugetul mediu alocat unei montari
+                                     in teatrul respectiv este de ' || info(i).dif || '.');
+            END IF;
+        END IF;
+        dif_ant := info(i).dif;
+    END LOOP;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        dbms_output.put_line('Nu exista nicio piesa cu titlul dat.');
+    WHEN TOO_MANY_ROWS THEN
+        dbms_output.put_line('Exista mai multe piese cu titlul dat.');
+    WHEN INTERVAL_INVALID THEN
+        dbms_output.put_line('Cei doi ani introdusi nu formeaza un interval valid.');
+    WHEN IN_AFARA_PERIOADEI_DE_INTERES THEN
+        dbms_output.put_line('Piesa introdusa a fost publicata in afara perioadei alese.');
+END situatie_montari;
+
+END exercitii;
+/
+
+-- 14.
+CREATE OR REPLACE PACKAGE montare_noua AS
+-- tip inregistrare, care retine date despre o montare care se doreste a fi realizata
+    TYPE montare IS RECORD(
+        gen piesa.gen%TYPE,
+        tip_sala NUMBER(4), 
+        t teatru.denumire%TYPE
+    );
+    FUNCTION nr_actori_disponibili(mf CHAR) RETURN NUMBER;
+    PROCEDURE piese_candidat(nr_act_m NUMBER, nr_act_f NUMBER, gen piesa.gen%TYPE);
+    FUNCTION exista_sala(m montare) RETURN BOOLEAN;
+    PROCEDURE festivaluri(m montare);
+END montare_noua;
+/
+
+CREATE OR REPLACE PACKAGE BODY montare_noua AS
+-- tip inregistrare, in care vom stoca numarul de roluri masculine, respectiv feminine, dintr-o piesa
+TYPE info_roluri_piesa IS RECORD(
+    p piesa.titlu%TYPE,
+    nr_act_m NUMBER(2),
+    nr_act_f NUMBER(2)
+);
+-- tip inregistrare, care retine, despre un festival, denumirea, numarul de reprezentatii si data de inceput a acestuia
+TYPE fest IS RECORD(
+    d festival.denumire%TYPE,
+    nr_reprez NUMBER,
+    data_inceput date
+);
+-- functie care obtine numarul de actori care ar putea participa la realizarea montarii (un actor este considerat disponibil, daca acesta nu este implicat,
+-- in luna curenta, in mai mult de 4 reprezentatii)
+FUNCTION nr_actori_disponibili(mf CHAR) RETURN NUMBER IS
+    nr NUMBER(2);
+BEGIN
+    SELECT COUNT(cod_persoana) INTO nr
+    FROM artist a, spec_art sa
+    WHERE a.cod_persoana = sa.cod_artist
+    AND sa.cod_specializare = 1
+    AND a.sex = mf
+    AND (SELECT COUNT(m.cod_montare)
+         FROM distributie d, montare m, afis af
+         WHERE d.cod_artist = a.cod_persoana
+         AND d.cod_montare = m.cod_montare
+         AND m.cod_montare = af.cod_montare
+         AND EXTRACT (MONTH FROM af.data) = EXTRACT (MONTH FROM sysdate)) <= 4;
+    RETURN nr;
+END nr_actori_disponibili;
+-- procedura care primeste ca parametrii un numar de roluri masculine, un numar de roluri feminine si un gen dramatic 
+-- si determina lista pieselor care ar putea fi montate, respectand conditiile date
+PROCEDURE piese_candidat(nr_act_m NUMBER, nr_act_f NUMBER, gen piesa.gen%TYPE) IS
+    TYPE tip_lista_piese IS TABLE OF info_roluri_piesa;
+    lista_piese tip_lista_piese := tip_lista_piese();
+BEGIN
+    WITH aux AS
+    (SELECT p1.titlu,
+    (SELECT COUNT(cod_persoana)
+     FROM distributie d, montare m, piesa p, artist a, spec_art sa
+     WHERE m.cod_piesa = p.cod_piesa
+     AND p.titlu = p1.titlu
+     AND d.cod_montare = m.cod_montare
+     AND d.cod_artist = a.cod_persoana
+     AND a.cod_persoana = sa.cod_artist
+     AND sa.cod_specializare = 1
+     AND a.sex = 'M') as nr_m,
+     (SELECT COUNT(cod_persoana)
+     FROM distributie d, montare m, piesa p, artist a, spec_art sa
+     WHERE m.cod_piesa = p.cod_piesa
+     AND p.titlu = p1.titlu
+     AND d.cod_montare = m.cod_montare
+     AND d.cod_artist = a.cod_persoana
+     AND a.cod_persoana = sa.cod_artist
+     AND sa.cod_specializare = 1
+     AND a.sex = 'F') as nr_f
+    FROM piesa p1)
+    SELECT titlu, (SELECT MAX(nr_m) FROM aux WHERE p.titlu = aux.titlu) nrm, (SELECT MAX(nr_f) FROM aux WHERE p.titlu = aux.titlu) nrf
+    BULK COLLECT INTO lista_piese
+    FROM piesa p
+    WHERE (SELECT MAX(nr_m) FROM aux WHERE p.titlu = aux.titlu) > 0 AND (SELECT MAX(nr_f) FROM aux WHERE p.titlu = aux.titlu) > 0
+    AND nr_act_m >= (SELECT MAX(nr_m) FROM aux WHERE p.titlu = aux.titlu) AND nr_act_f >= (SELECT MAX(nr_f) FROM aux WHERE p.titlu = aux.titlu)
+    AND p.gen = gen;
+    dbms_output.new_line();
+    dbms_output.put_line('Piesele care ar putea fi montate sunt: ');
+    FOR i IN lista_piese.FIRST..lista_piese.LAST LOOP
+        dbms_output.put_line('Piesa ' || lista_piese(i).p || ', in care exista ' || lista_piese(i).nr_act_m || ' roluri masculine si '
+                             || lista_piese(i).nr_act_f || ' roluri feminine.');
+    END LOOP;
+END piese_candidat;
+-- functie care verifica daca in teatrul in care se doreste a se realiza noua montare, exista cel putin o sala cu capacitatea potrivita
+FUNCTION exista_sala(m montare) RETURN BOOLEAN IS
+    b BOOLEAN;
+    nr NUMBER;
+BEGIN
+    SELECT COUNT(cod_sala) INTO nr
+    FROM sala s, teatru t
+    WHERE s.cod_teatru = t.cod_teatru
+    AND t.denumire = m.t
+    AND s.capacitate >= m.tip_sala - 50 AND s.capacitate <= m.tip_sala + 50;
+    IF nr > 0 THEN b := true;
+        ELSE b := false;
+    END IF;
+    RETURN b;
+END exista_sala;
+-- procedura care obtine, pentru o montare, lista festivalurilor in care aceasta ar putea fi jucata (se considera ca o montare poate fi jucata intr-un 
+-- festival, daca pe agenda acestuia nu exista deja mai mult de 3 montari de acelasi gen cu al noii montari)
+PROCEDURE festivaluri(m montare) IS
+    TYPE tip_lista_festivaluri IS TABLE OF fest;
+    lista_festivaluri tip_lista_festivaluri := tip_lista_festivaluri();
+BEGIN
+    SELECT denumire, (SELECT COUNT(cod_montare) FROM agenda WHERE cod_festival = f.cod_festival), data_inceperii BULK COLLECT INTO lista_festivaluri
+    FROM festival f
+    WHERE (SELECT COUNT(m.cod_montare)
+           FROM agenda a, montare m, piesa p
+           WHERE a.cod_festival = f.cod_festival
+           AND a.cod_montare = m.cod_montare
+           AND m.cod_piesa = p.cod_piesa
+           AND p.gen = m.gen) <= 3;
+    dbms_output.new_line();
+    dbms_output.put_line('Exista ' || lista_festivaluri.COUNT || ' festivaluri in care montarea ar putea fi prezentata:');
+    FOR i IN lista_festivaluri.FIRST..lista_festivaluri.LAST LOOP
+        dbms_output.put_line('Festivalul ' || lista_festivaluri(i).d || ', care incepe la data de ' || lista_festivaluri(i).data_inceput
+                             || ', in cadrul caruia sunt deja programate ' || lista_festivaluri(i).nr_reprez || ' spectacole.');
+    END LOOP;
+END festivaluri;
+
+END montare_noua;
+/
+
+DECLARE 
+    nr1 NUMBER(2);
+    nr2 NUMBER(2);
+    m montare_noua.montare;
+BEGIN
+    nr1 := montare_noua.nr_actori_disponibili('M');
+    dbms_output.put_line('Numarul de actori care sunt disponibili pentu a participa la montare: ' || nr1);
+    nr2 := montare_noua.nr_actori_disponibili('F');
+    dbms_output.put_line('Numarul de actrite care sunt disponibile pentu a participa la montare: ' || nr2);
+    montare_noua.piese_candidat(nr1, nr2, 'comedie');
+    m.gen := 'comedie';
+    m.t := 'Teatrul National Bucuresti';
+    m.tip_sala := 500;
+    IF montare_noua.exista_sala(m) THEN
+        dbms_output.new_line();
+        dbms_output.put_line('S-a gasit o sala potrivita.');
+    ELSE
+        dbms_output.new_line();
+        dbms_output.put_line('Nu s-a gasit o sala potrivita.');
+    END IF;
+    montare_noua.festivaluri(m);
+END;
+/
